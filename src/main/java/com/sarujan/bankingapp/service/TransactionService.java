@@ -2,6 +2,7 @@ package com.sarujan.bankingapp.service;
 
 import com.sarujan.bankingapp.model.Account;
 import com.sarujan.bankingapp.model.Transaction;
+import com.sarujan.bankingapp.exception.TransactionException;
 import com.sarujan.bankingapp.repository.AccountRepository;
 import com.sarujan.bankingapp.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
@@ -24,27 +25,32 @@ public class TransactionService {
 
     @Transactional
     public Transaction transfer(Long fromAccountId, Long toAccountId, BigDecimal amount) {
-        // Fetch accounts
-        Account fromAccount = accountRepository.findById(fromAccountId)
-                .orElseThrow(() -> new RuntimeException("Sender account not found"));
-        Account toAccount = accountRepository.findById(toAccountId)
-                .orElseThrow(() -> new RuntimeException("Receiver account not found"));
-
-        // Check for insufficient funds
-        if (fromAccount.getBalance().compareTo(amount) < 0) {
-            Transaction failedTransaction = new Transaction(fromAccount, toAccount, amount, "FAILED");
-            return transactionRepository.save(failedTransaction);
+        if (fromAccountId.equals(toAccountId)) {
+            throw new TransactionException("Sender and receiver accounts must be different");
         }
 
-        // Perform transfer safely with BigDecimal methods
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new TransactionException("Transfer amount must be positive");
+        }
+
+        // Fetch accounts
+        Account fromAccount = accountRepository.findById(fromAccountId)
+                .orElseThrow(() -> new TransactionException("Sender account not found"));
+
+        Account toAccount = accountRepository.findById(toAccountId)
+                .orElseThrow(() -> new TransactionException("Receiver account not found"));
+
+        if (fromAccount.getBalance().compareTo(amount) < 0) {
+            throw new TransactionException("Insufficient funds");
+        }
+
+        // Perform transfer safely with BigDecimal
         fromAccount.setBalance(fromAccount.getBalance().subtract(amount));
         toAccount.setBalance(toAccount.getBalance().add(amount));
 
-        // Persist account changes
         accountRepository.save(fromAccount);
         accountRepository.save(toAccount);
 
-        // Record successful transaction
         Transaction transaction = new Transaction(fromAccount, toAccount, amount, "SUCCESS");
         return transactionRepository.save(transaction);
     }
