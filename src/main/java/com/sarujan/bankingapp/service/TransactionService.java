@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
+
 
 @Service
 public class TransactionService {
@@ -45,5 +47,10 @@ public class TransactionService {
         // Record successful transaction
         Transaction transaction = new Transaction(fromAccount, toAccount, amount, "SUCCESS");
         return transactionRepository.save(transaction);
+    }
+
+    @Transactional(readOnly = true) // optional, improves performance for read-only queries
+    public List<Transaction> getTransactionsByUser(Long userId) {
+        return transactionRepository.findAllByUserId(userId);
     }
 }
