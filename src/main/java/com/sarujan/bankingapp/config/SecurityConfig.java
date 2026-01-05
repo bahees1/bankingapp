@@ -1,38 +1,43 @@
 package com.sarujan.bankingapp.config;
 
+import com.sarujan.bankingapp.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
+
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 public class SecurityConfig {
+
+    private final JwtAuthFilter jwtAuthFilter;
+
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+        this.jwtAuthFilter = jwtAuthFilter;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                // For APIs + Postman testing (we'll do proper JWT CSRF strategy later)
+                // REST API: no CSRF needed
                 .csrf(csrf -> csrf.disable())
+
+                // No sessions
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                                // allow auth endpoints without token
-                                .requestMatchers("/api/auth/**").permitAll()
-
-                                // allow error endpoint (helps during dev)
-                                .requestMatchers("/error").permitAll()
-
-                                // everything else: for now allow all OR require auth (choose one)
-                                .anyRequest().permitAll()
-                        // later we will switch to:
-                        // .anyRequest().authenticated()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/error").permitAll()
+                        .anyRequest().authenticated()
                 )
 
-                // Disable default login page / browser auth popups
-                .httpBasic(Customizer.withDefaults())
-                .formLogin(form -> form.disable());
+                // Add our JWT filter before the default username/password filter
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

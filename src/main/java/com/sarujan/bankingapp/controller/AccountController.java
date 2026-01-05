@@ -5,6 +5,8 @@ import com.sarujan.bankingapp.service.AccountService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -43,5 +45,14 @@ public class AccountController {
     public ResponseEntity<Account> getAccountById(@PathVariable Long id) {
         Account account = accountService.getAccountById(id);
         return ResponseEntity.ok(account);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<List<Account>> getMyAccounts() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName(); // comes from JWT subject
+
+        List<Account> accounts = accountService.getAccountsByUsername(username);
+        return ResponseEntity.ok(accounts);
     }
 }
