@@ -7,6 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import com.sarujan.bankingapp.dto.DepositRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -33,6 +37,20 @@ public class AccountController {
         return ResponseEntity.status(HttpStatus.CREATED).body(account);
     }
 
+    // used for deposits
+    @PostMapping("/{accountId}/deposit")
+    public ResponseEntity<Account> deposit(
+            @PathVariable Long accountId,
+            @RequestBody DepositRequest request
+    ) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName(); // from JWT subject
+
+        Account updated = accountService.depositToAccount(username, accountId, request.getAmount());
+        return ResponseEntity.ok(updated);
+    }
+
+
     // Get all accounts for a user
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<Account>> getAccountsByUserId(@PathVariable Long userId) {
@@ -55,4 +73,17 @@ public class AccountController {
         List<Account> accounts = accountService.getAccountsByUsername(username);
         return ResponseEntity.ok(accounts);
     }
+
+    // create an account using JWT instead of user ID
+    @PostMapping("/me")
+    public ResponseEntity<Account> createMyAccount(@RequestBody Map<String, Object> payload) {
+        String accountType = (String) payload.get("accountType");
+        BigDecimal initialBalance = new BigDecimal(payload.get("initialBalance").toString());
+
+        Account account = accountService.createMyAccount(accountType, initialBalance);
+        return ResponseEntity.status(HttpStatus.CREATED).body(account);
+    }
+
+
+
 }
