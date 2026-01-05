@@ -36,4 +36,13 @@ public class TransactionController {
                 .map(TransactionDTO::new)
                 .collect(Collectors.toList());
     }
+    @GetMapping("/me")
+    public List<TransactionDTO> getMyTransactionHistory() {
+        List<Transaction> transactions = transactionService.getMyTransactions();
+
+        return transactions.stream()
+                .map(TransactionDTO::new)
+                .collect(Collectors.toList());
+    }
+
 }
